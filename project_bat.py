@@ -210,7 +210,7 @@ class bat(object):
         prev_ce = (seg_vect[0]*pos_vect[1] - seg_vect[1]*pos_vect[0])/sv_mag
         #dot product to see how far along along seg 
         d_prod = (seg_vect[0]*pos_vect[0] + seg_vect[1]*pos_vect[1])/(sv_mag*sv_mag)
-#        visual = bat_visualize.bat_visualization(500)      
+#        visual = bat_visualize.bat_visualization(500) 
         while d_prod < 1:
             #cross product to obtain error since a x b = |a||b|sin(theta)
             c_error = (seg_vect[0]*pos_vect[1] - seg_vect[1]*pos_vect[0])/sv_mag
@@ -222,12 +222,22 @@ class bat(object):
             visual.update(objgrid, self.position, self.cave.width, self.radius, self.direction, self.fov, self.range)
             pos_vect = [bat_pos[0] - start[0], bat_pos[1] - start[1]]
             #dot product to see how far along along seg 
-            d_prod = (seg_vect[0]*pos_vect[0] + seg_vect[1]*pos_vect[1])/(sv_mag*sv_mag)           
+            d_prod = (seg_vect[0]*pos_vect[0] + seg_vect[1]*pos_vect[1])/(sv_mag*sv_mag)
+            if d_prod < 0:
+                self.move(0, 180) #sometimes might be going the other way
+                d_prod = (seg_vect[0]*pos_vect[0] + seg_vect[1]*pos_vect[1])/(sv_mag*sv_mag)
         return True 
 
 #cave1 = cave(10, 10, 50)
 #bat1 = bat(cave1, 90, 5, 0.1)
-#bat1.bat_line_follow([2,2],120,800,30)
+#visual = bat_visualize.bat_visualization(500)
+#obstacles = cave1.obstacles
+#actualobs = np.zeros((cave1.width, cave1.height))
+#actualobs = pylab.matrix(actualobs)
+#for obstacle in obstacles: 
+#    actualobs[obstacle[0], obstacle[1]] = 1
+#bat1.bat_line_follow([2,2],120,800,30, visual, actualobs)
+#visual.done()
 #bat1.add_ultrasonic(((0.1,0),0,3))
 #bat1.add_ultrasonic(((0,0.1),90,3))
 #bat1.add_ultrasonic(((-0.1,0),180,3))

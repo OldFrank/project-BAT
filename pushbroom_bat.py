@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+3# -*- coding: utf-8 -*-
 """
 Created on Mon Jan 16 17:55:44 2017
 Pushbrrom bat 
@@ -16,7 +16,7 @@ import math
 STATUS
 *****************
 currently mostly work. But sometimes when given some coordinate goals (ex. 45., 9) will arrive at some 
-point but not the point i want it to be at 
+point but not the point i want it to be at ##i think this is due to not keeping track of angle 
 """
 
 """
@@ -96,13 +96,12 @@ def surr_grid_ok(grid, tile, threshold):
     so that the tiles in a grid cannot by bordered by grids that are above thrershold 
     as a safety measure
     """
-    for i in range(-1, 2):
-        for j in range(-1, 2):
-            try: 
-                if grid[tile[0]+i, tile[1]+j] > threshold: 
-                    return False
-            except IndexError: 
-                pass 
+    for [i,j] in [[1,0],[0,1],[-1,0],[0,-1]]:
+        try: 
+            if grid[tile[0]+i, tile[1]+j] > threshold: 
+                return False
+        except IndexError: 
+            pass 
     return True 
     
 def find_opt_path_As(grid, start, end, threshold): 
@@ -121,7 +120,7 @@ def find_opt_path_As(grid, start, end, threshold):
     current = start[:]
     step = 0
     try:
-        while current != end: 
+        while current != end:  
             minval = 99
             best = None
 #            for i in range(-1,2):
@@ -130,9 +129,10 @@ def find_opt_path_As(grid, start, end, threshold):
                 ns = current
                 a = ns[0] + i
                 b = ns[1] + j
+                print [a,b]
                 if a >=0 and a < num_row and b>= 0 and b < num_col:
                     if ref[a,b] < threshold:
-                        if surr_grid_ok(ref, [a,b], threshold):
+                        if surr_grid_ok(ref, [a,b], threshold) or [a,b] == end:
                             val = step + heuristic[a,b] + grid[a,b]
                             if val < minval: 
                                 best = [a,b]
@@ -145,7 +145,7 @@ def find_opt_path_As(grid, start, end, threshold):
     return path 
 
 class Pushbroom(object):
-    def __init__(self, min_dist, max_dist, fov, dist_per_que, goal, threshold = 0.5):
+    def __init__(self, min_dist, max_dist, fov, dist_per_que, goal, threshold = 0.2):
         """
         initialize queue to store sensed obstacles 
         goal is given from initial bearing (angle) and distance
@@ -176,7 +176,7 @@ class Pushbroom(object):
         reinitiated 
         """
     
-    def initialize_queue(self, list_obstacles, meas_certainty=0.8):
+    def initialize_queue(self, list_obstacles, turnt, meas_certainty=0.9):
         """
         add a list (with each entry being a list [degree, distance], with distance being in queue units) of 
         obstacles obeserved initially to the obstacle queue
@@ -188,9 +188,9 @@ class Pushbroom(object):
         rad = math.radians(goal[0])
         prev_gvector = [self.goal[1]*math.cos(rad), self.goal[1]*math.sin(rad)] #old vector to goal 
         motion_vector = self.bat_pos
-        new_gvector = [prev_gvector[0] - motion_vector[0], prev_gvector[1] - motion_vector[1]]        
+        new_gvector = [prev_gvector[0] - motion_vector[0], prev_gvector[1] - motion_vector[1]]    
         #new goal vector to calculate updated goal 
-        new_goal = [math.degrees(math.atan2(new_gvector[1], new_gvector[0])), math.sqrt(new_gvector[0]**2 + new_gvector[1]**2)]    
+        new_goal = [math.degrees(math.atan2(new_gvector[1], new_gvector[0]))-turnt, math.sqrt(new_gvector[0]**2 + new_gvector[1]**2)]    
         self.goal = new_goal
         self.bat_tile = [limt, limt]
         self.bat_pos = [0,0]
@@ -204,7 +204,7 @@ class Pushbroom(object):
             row_index = int((math.cos(radians)*distance)/self.dist_pq) + limt
             col_index = int((math.sin(radians)*distance)/self.dist_pq) + limt
             spil_prob = (1-meas_certainty)/8. #spillover probability
-            if [row_index, col_index] not in filled_tiles:
+            if [row_index, col_index] not in filled_tiles and [row_index, col_index] != self.bat_tile:
                 if distance > self.mindist and distance < self.maxdist:
                     if degrees > -abs_fov and degrees < abs_fov: #only input detection with the field of view 
                         for i in range(-1, 2): 
@@ -220,21 +220,43 @@ class Pushbroom(object):
                                         pass 
         #check if goal is in range, if not, generate fake_goal 
         goal = self.goal 
+        print "$$$$$$$$$$$$"
+        print "checking initialization"
+        print "obst queue"
+        print self.obst_queue
+        print "goal: ", goal
         rad = math.radians(goal[0])
         goal_row = int((math.cos(rad)*goal[1])/self.dist_pq) + limt
         goal_col = int((math.sin(rad)*goal[1])/self.dist_pq) + limt
+        print "goaldex: ", [goal_row, goal_col]
+        print "$$$$$$$$$$$$$"
         if goal_row >= 0 and goal_row < num_queue and goal_col >= 0 and goal_col < num_queue:
             self.real_goal = True 
         else: 
+            goal_row_ori = int((math.cos(rad)*self.maxdist)/self.dist_pq) + limt
+            goal_col_ori = int((math.sin(rad)*self.maxdist)/self.dist_pq) + limt
             goal_row = int((math.cos(rad)*self.maxdist)/self.dist_pq) + limt
             goal_col = int((math.sin(rad)*self.maxdist)/self.dist_pq) + limt
-            counter = 0
+            rowdex = 0
+            coldex = 0
+            shift = [0,1,-1]
             while self.obst_queue[goal_row, goal_col] > self.threshold: 
-                if counter%2 == 0:
-                    goal_row = goal_row - (math.cos(rad)/abs(math.cos(rad)))
-                else: 
-                    goal_col = goal_col - (math.cos(rad)/abs(math.cos(rad)))
-                counter += 1
+                print "goal attempt"
+                print [goal_row, goal_col]
+                goal_row = goal_row_ori - (math.cos(rad)/abs(math.cos(rad)))*shift[rowdex]
+                goal_col = goal_col_ori - (math.cos(rad)/abs(math.cos(rad)))*shift[coldex]
+                if goal_row >= num_queue:
+                    goal_row = goal_row_ori
+                if goal_col >= num_queue:
+                    goal_col = goal_col_ori
+                if coldex == 2 and rowdex == 2:
+                    print "No Path Possible"
+                    break
+                elif coldex == 2:
+                    rowdex += 1
+                    coldex = 0
+                else:
+                    coldex += 1             
                 
         self.goal_index = [goal_row, goal_col]
 #        print self.goal_index
@@ -261,6 +283,7 @@ class Pushbroom(object):
         start = self.bat_tile
         end = self.goal_index
         path = find_opt_path_As(self.obst_queue, start, end, self.threshold)
+        print "finished"
         self.path = path
     
     def smooth_path(self, weight_smooth=0.1, weight_data=0.1, tolerance=0.00001): 
@@ -346,20 +369,26 @@ class Pushbroom(object):
             if [row_index, col_index] not in meas_index: #dont' have more than one 
                 if row_index >= 0 and row_index < self.num_queue and col_index >=0 and col_index < self.num_queue:
                     meas_index.append([row_index, col_index])
-
+#            print self.bat_tile
+#            print meas_index
+        print "meas index"
+        print meas_index
         for tile in meas_index:
             for i in range(-1,2):
                 for j in range(-1,2): 
                     a = tile[0] + i
                     b = tile[1] + j
                     if i == 0 and j == 0: 
-                        new_grid[a,b] = self.obst_queue[a,b]*meas_certainty
-                    else: 
-                        if [a,b] not in meas_index: 
-                            try: 
-                                new_grid[a,b] = self.obst_queue[a,b]*spill_prob
-                            except IndexError: 
-                                pass
+                        if new_grid[a,b] < self.threshold and [a,b] != self.bat_tile:
+                            new_grid[a,b] = meas_certainty
+#                        else:
+#                            new_grid[a,b] = self.obst_queue[a,b]*meas_certainty
+#                    else: 
+#                        if [a,b] not in meas_index: 
+#                            try: 
+#                                new_grid[a,b] = self.obst_queue[a,b]*spill_prob
+#                            except IndexError: 
+#                                pass
                             #need to check because dont want to multiply a detected 
                             #tile by a small probability 
         return new_grid 
@@ -400,7 +429,7 @@ class Pushbroom(object):
             ang_index = (new_ang + 180.)/self.deg_pq
             dist_index = (new_dist - self.mindist)/self.dist_pq
             new_path.append([dist_index, ang_index])
-        self.path = new_path
+        self.path = new_path 
 
     def bat_nav_sim(self):
         """
@@ -409,11 +438,15 @@ class Pushbroom(object):
         limt = (self.num_queue - 1)/2
         #First step: initialize
         testcave = pb.cave(8,8,10)
-        testbat = pb.bat(testcave, 90, 4, 0.1)
+        testbat = pb.bat(testcave, 90, 3, 0.1)
         self.maxdist = testbat.range
         self.fov = testbat.fov
         init_observ = testbat.sense_obstacle()
-        self.initialize_queue(init_observ)
+        print "init observ"
+        print init_observ
+        self.initialize_queue(init_observ, 0)
+        print "obst queue"
+        print self.obst_queue
         goal_reached = False
         self.generate_waypts()
         #search for a new endpoint if the initial one doesn't work 
@@ -428,6 +461,12 @@ class Pushbroom(object):
             go_ind[count%2] -= 1
             self.goal_index = go_ind
             self.generate_waypts()
+        print "goal"
+        print self.goal
+        print "goal_ind"
+        print self.goal_index
+        print "path"
+        print self.path
         self.smooth_path() #smooth the generated waypts 
         #initialize graphics
         actualobs = np.zeros((testcave.width, testcave.height))
@@ -437,6 +476,8 @@ class Pushbroom(object):
         visual = bv.bat_visualization(500) #initiate visual 
         seg_num = 1 #the pointer to the index of the path that the bat is currently on 
         current_origin = [testbat.get_bat_pos().get_x(), testbat.get_bat_pos().get_x()]
+        prev_angle = testbat.direction
+        current_angle = testbat.direction
         #current origin maps what's going on in the bat sensing frame to whats going on in the 
         #cave, mostly for simulation purposes 
         while not goal_reached:
@@ -444,47 +485,117 @@ class Pushbroom(object):
             end = self.path[seg_num]
             if end == self.goal_index and self.real_goal:
                 goal_reached = True
-            end_bat_frame = [(end[0]-limt)*self.dist_pq + current_origin[0], (end[1]-limt)*self.dist_pq + current_origin[1]]           
-
+            #navigating to the next point in math but first have to convert that point 
+            #to the bat frame 
+            end1 = [(end[0]-limt)*self.dist_pq, (end[1]-limt)*self.dist_pq]
+            end1_polar = [math.atan2(end1[1],end1[0]) + math.radians(current_angle), math.sqrt(end1[0]**2 + end1[1]**2)]
+            end1 = [end1_polar[1]*math.cos(end1_polar[0]), end1_polar[1]*math.sin(end1_polar[0])]
+            end_bat_frame = [end1[0] + current_origin[0], end1[1] + current_origin[1]]   
             mvt_vector = [end_bat_frame[0] - self.bat_pos[0] - current_origin[0], end_bat_frame[1] - self.bat_pos[1] - current_origin[1]]
             dist = math.sqrt(mvt_vector[0]**2 + mvt_vector[1]**2)
             direc = math.degrees(math.atan2(mvt_vector[1], mvt_vector[0]))
-            testbat.bat_line_follow(end_bat_frame, 120,800,30,visual,actualobs)
-            self.motion_update(dist, direc)
+            testbat.bat_line_follow(end_bat_frame, 300,500,30,visual,actualobs)
+            self.obst_queue = self.motion_update(dist, direc)
             newmeas = testbat.sense_obstacle()
-            self.meas_update(newmeas)
+            self.obst_queue = self.meas_update(newmeas)
+            print "observ"
+            print newmeas
+            print "goal"
+            print self.goal_index
+            print "bat tile"
+            print self.bat_tile
+            print "current origin"
+            print current_origin
+            print "bat pos"
+            print self.bat_pos
+            print "local goal"
+            print end 
+            print "local goal_map frame"
+            print end_bat_frame
+            print "path"
+            print self.path
+            print "obst queue"
+            print self.obst_queue
             condition = False #the if statement below accounts for the case of nearing goal 
             if not self.real_goal:
                 if seg_num >= (len(self.path)-2):
                     condition = True 
             if not self.check_pathclear() or condition: #dictating when to reintialize obstacle detection grid
-                #reinitializes when path isn't clear or if nearing the end of the generated path                 
+                #reinitializes when path isn't clear or if nearing the end of the generated path              
                 current_origin[0] += self.bat_pos[0] #move the mapping origin 
                 current_origin[1] += self.bat_pos[1]
-                self.initialize_queue(newmeas) #use new measurement to reinitilize new obst grid 
+#                current_origin[0] = testbat.position.get_x()
+#                current_origin[1] = testbat.position.get_y()
+                prev_angle = current_angle
+                current_angle = testbat.direction
+                print "current angle: ", current_angle
+                self.initialize_queue(newmeas, current_angle - prev_angle) #use new measurement to reinitilize new obst grid                 
+                print "goal index"
+                print self.goal_index
                 self.generate_waypts() #again try to generate waypoints + smooth 
-                while self.path == [] or self.path == None:
-                    go_ind = self.goal_index
-                    if go_ind[0] == 0 and go_ind[1] == 0:
-                        print "No Path Found"
-                        return False
-                    go_ind[count%2] -= 1
-                    self.goal_index = go_ind
-                    self.generate_waypts()
+                rowdex = 0
+                coldex = 0
+                shift = [0,1,-1]
+                go_ind = self.goal_index[:]
+                go_orig = self.goal_index[:]
+                while self.path == [] or self.path == None:# or self.path[-1] == self.bat_tile:
+                    go_ind[0] = go_orig[0] + shift[rowdex]
+                    go_ind[1] = go_orig[1] + shift[coldex]
+                    if go_ind[0] >= self.num_queue:
+                        go_ind[0] = go_orig[0]
+                    if go_ind[1] >= self.num_queue:
+                        go_ind[1] = go_orig[1]
+                    if coldex == 2 and rowdex == 2:
+                        print "No Path Possible"
+                        break
+                    elif coldex == 2:
+                        rowdex += 1
+                        coldex = 0
+                    else:
+                        coldex += 1                
+                    print "trying to find path"
+                    if go_ind != self.bat_tile:
+                        self.goal_index = go_ind
+                        print self.goal_index
+                        print "====================="
+                        print "regenerating waypoints"
+                        print "====================="
+                        self.generate_waypts()
                 self.smooth_path()
                 print "reinit"
-                seg_num = 0  
+                seg_num = 0
 #            if self.real_goal:
 #                goal_reached = True 
             seg_num += 1
         print "arrived"
         visual.done()
             
-           
-test1 = Pushbroom(0, 4, 90, 0.5, [30., 8])
+#mat = pylab.matrix([[ 0.   ,  0.   ,  0.   ,  0.   ,  0.   ,  0.   ,  0.   ],
+#        [ 0.   ,  0.   ,  0.   ,  0.   ,  0.   ,  0.   ,  0.   ],
+#        [ 0.   ,  0.   ,  0.   ,  0.   ,  0.   ,  0.   ,  0.   ],
+#        [ 0.   ,  0.   ,  0.025,  0.025,  0.025,  0.   ,  0.   ],
+#        [ 0.   ,  0.   ,  0.05 ,  0.9  ,  0.05 ,  0.   ,  0.   ],
+#        [ 0.   ,  0.   ,  0.05 ,  0.925,  0.626,  0.   ,  0.   ],
+#        [ 0.   ,  0.   ,  0.025,  0.025,  0.745,  0.   ,  0.   ]])
+#
+#print find_opt_path_As(mat,[3,3],[5,2],0.4)  
+#print mat      
+test1 = Pushbroom(0, 3, 90, 1, [45., 8])
+#bat1 = pb.bat(testcave, 90, 3, 0.1)
+#bat1.bat_line_follow(end_bat_frame, 300,500,30,visual,actualobs)
 test1.bat_nav_sim()
-#cave1 = pb.cave(8,8,20)
-#bat1 = pb.bat(cave1, 90, 4)    
+#test = Pushbroom(0,4,90,0.5,[45., 8])
+#print "bat tile"
+#print test.bat_tile
+#meass = bat1.sense_obstacle()
+#print "measurements"
+#print meass
+#test.initialize_queue(meass, 0)
+#print test.obst_queue
+#test.motion_update(1,0)
+#print "new bat tile"
+#print test.bat_tile
+#print test.obst_queue
 #sob = bat1.sense_obstacle()
 #
 #test = Pushbroom(0,3,90,0.5,[45., 4])
