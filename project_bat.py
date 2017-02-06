@@ -155,7 +155,7 @@ class bat(object):
         invalid (running into wall of obstacle) go to a random position
         """
         current_dir = self.get_bat_dir()
-        new_dir = current_dir + angle
+        new_dir = (current_dir + angle)%(360)
         self.set_bat_dir(new_dir)
         current_pos = self.get_bat_pos()
         newpos = current_pos.get_new_position(new_dir, dist)
@@ -166,12 +166,15 @@ class bat(object):
         helper functionn to sense, see if there's an obstacle at a certain distance at a certain angle
         """
         cave = self.cave
+        rangelist = [0.1*i for i in range(urange*10)]
         radians = math.radians(angle)
-        for dist in range(urange+1):
+        for dist in rangelist:
             #search for obstacle 
             coor_x = int(position.get_x() + math.cos(radians)*dist)
             coor_y = int(position.get_y() + math.sin(radians)*dist)
-            if (coor_x, coor_y) in cave.obstacles:
+            tile_x = int(coor_x)
+            tile_y = int(coor_y)
+            if (tile_x, tile_y) in cave.obstacles:
                 xx = coor_x
                 yy = coor_y 
                 if add_noise:
@@ -223,9 +226,9 @@ class bat(object):
             pos_vect = [bat_pos[0] - start[0], bat_pos[1] - start[1]]
             #dot product to see how far along along seg 
             d_prod = (seg_vect[0]*pos_vect[0] + seg_vect[1]*pos_vect[1])/(sv_mag*sv_mag)
-            if d_prod < 0:
-                self.move(0, 180) #sometimes might be going the other way
-                d_prod = (seg_vect[0]*pos_vect[0] + seg_vect[1]*pos_vect[1])/(sv_mag*sv_mag)
+#            if d_prod < 0:
+#                self.move(0, 180) #sometimes might be going the other way
+#                d_prod = (seg_vect[0]*pos_vect[0] + seg_vect[1]*pos_vect[1])/(sv_mag*sv_mag)
         return True 
 
 #cave1 = cave(10, 10, 50)
