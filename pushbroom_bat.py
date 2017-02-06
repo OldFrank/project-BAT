@@ -485,7 +485,7 @@ class Pushbroom(object):
         #matrix of obstacles for the visual 
         for obstacle in testcave.obstacles: 
             actualobs[obstacle[0], obstacle[1]] = 1
-        visual = bv.bat_visualization(500) #initiate visual 
+        visual = bv.bat_visualization(2000) #initiate visual 
         seg_num = 1 #the pointer to the index of the path that the bat is currently on 
         current_origin = [testbat.get_bat_pos().get_x(), testbat.get_bat_pos().get_x()]
         prev_angle = testbat.direction
@@ -603,7 +603,12 @@ class Pushbroom(object):
 #
 #print find_opt_path_As(mat,[3,3],[5,2],0.4)  
 #print mat      
-test1 = Pushbroom(0, 5, 90, 0.5, [25., 9])
+test1 = Pushbroom(0, 5, 90, 0.25, [20., 8])
+"""
+====interesting points===
+[50.,8],[60., 8],[42., 7],[20.,8]
+=========================
+"""
 #bat1 = pb.bat(testcave, 90, 3, 0.1)
 #bat1.bat_line_follow(end_bat_frame, 300,500,30,visual,actualobs)
 test1.bat_nav_sim()

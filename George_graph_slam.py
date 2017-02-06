@@ -257,7 +257,9 @@ def make_data(N, num_landmarks, world_size, speed):
     yaw = 0.
     timeInt = 0.1
     data_pack = []
-#    landmarks = make_landmarks(world_size, num_landmarks)
+    #generating random landmarks
+ #   landmarks = make_landmarks(world_size, num_landmarks)
+    #If I want two lines(like a long corridor) for my environment 
     landmarks = [[i,60] for i in range(100)]
     landmarks = landmarks + [[i,40] for i in range(100)]
     while len(data_pack) < N:
@@ -297,8 +299,8 @@ test with data that has mostly 0 acceleration
 """
 
 a = make_data(100, 70, 100, 10)
-a_viz = bv.bat_visualization(500)
-r_viz = bv.bat_visualization(500)
+a_viz = bv.bat_visualization(2000)
+r_viz = bv.bat_visualization(2000)
 lnd_array = np.zeros((100,100))
 for ldn in a[2]:
     try:
@@ -314,13 +316,12 @@ for i in range(1,len(result)/2):
         pred_array[round(result[i*2]),round(result[2*i+1])] = 1.0
     except IndexError:
         pass
+
+print "slam predicted final pos: ",[result[0],result[1]]
+print "final pos: ",a[1]
 a_viz.createcanvas(lnd_array)
 r_viz.createcanvas(pred_array)
 a_viz.top.update()
 r_viz.top.update()
 a_viz.done()
 r_viz.done()
-print "result: ",result
-print "final pos: ",a[1]
-print "landmarks: ",a[2]
-print "poslist: ",a[3]
