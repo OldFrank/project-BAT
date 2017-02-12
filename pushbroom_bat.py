@@ -419,29 +419,6 @@ class Pushbroom(object):
                         clear = False
                         break
         return clear 
-    
-    def update_path(self, delta_dist, delta_ang):
-        """
-        path update for when the drone moves 
-        """
-        orig_path = self.path 
-        new_path = []
-        for step in orig_path:
-            old_dist = step[0]*self.dist_pq + self.mindist 
-            old_ang = (step[1]*self.deg_pq - 180.0)
-            #apply delta_ang 
-            ang1 = old_ang - delta_ang
-            rad = math.radians(ang1)
-            newx = (old_dist + self.dist_pq/2.)*(math.cos(rad))
-            newy = (old_dist + self.dist_pq/2.)*(math.sin(rad)) - delta_dist
-            new_ang = round(math.degrees(math.atan2(newy, newx)), 5)
-            new_dist = math.sqrt(newx**2 + newy**2)
-            if new_ang == 180:
-                new_ang = 179 
-            ang_index = (new_ang + 180.)/self.deg_pq
-            dist_index = (new_dist - self.mindist)/self.dist_pq
-            new_path.append([dist_index, ang_index])
-        self.path = new_path 
 
     def bat_nav_sim(self):
         """
@@ -609,53 +586,4 @@ test1 = Pushbroom(0, 5, 90, 0.25, [20., 8])
 [50.,8],[60., 8],[42., 7],[20.,8]
 =========================
 """
-#bat1 = pb.bat(testcave, 90, 3, 0.1)
-#bat1.bat_line_follow(end_bat_frame, 300,500,30,visual,actualobs)
 test1.bat_nav_sim()
-#test = Pushbroom(0,4,90,0.5,[45., 8])
-#print "bat tile"
-#print test.bat_tile
-#meass = bat1.sense_obstacle()
-#print "measurements"
-#print meass
-#test.initialize_queue(meass, 0)
-#print test.obst_queue
-#test.motion_update(1,0)
-#print "new bat tile"
-#print test.bat_tile
-#print test.obst_queue
-#sob = bat1.sense_obstacle()
-#
-#test = Pushbroom(0,3,90,0.5,[45., 4])
-#test.initialize_queue(sob)
-#print test.obst_queue
-#print cave1.obstacles
-##
-#test.generate_waypts()
-#test.smooth_path()
-#print test.path
-#visual = bv.bat_visualization(500)
-#actualobs = np.zeros((cave1.width, cave1.height))
-#actualobs = pylab.matrix(actualobs)
-#for obstacle in cave1.obstacles: 
-#    actualobs[obstacle[0], obstacle[1]] = 1
-#visual.update(actualobs, bat1.position, 5, bat1.radius, bat1.direction, 90, 3)
-#visual.done()
-#
-#pp = test1.path
-#x = []
-#y = []
-#for step in pp: 
-#    x.append(step[0])
-#    y.append(step[1])
-#pylab.plot(y,x)
-#print test.check_pathclear()
-#
-##bat1.move(0,1)
-##sob = bat1.sense_obstacle()
-##print test.motion_update(0.2,0)
-##print test.meas_update(sob)
-##test.smooth_path()
-##print test.path
-##test.update_path(1,5)
-##print test.path
